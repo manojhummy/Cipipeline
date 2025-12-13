@@ -7,43 +7,40 @@ on:
       - completed
 
 jobs:
-  deploy:
+  cd:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
-    steps:
-      # Step 1: Download artifact from CI
-      - name: Download CI Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: java-artifact
-          path: artifact
+    permissions:
+      actions: read
+      contents: read
 
-      # Step 2: Upload artifact to JFrog Artifactory
+    steps:
+      # 1️⃣ Get artifact from CI workflow using GitHub API
+      - name: Download artifact from CI workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          REPO: ${{ github.repository }}
+        run: |
+          mkdir artifact
+          ARTIFACT_ID=$(curl -s \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/artifacts \
+            | jq -r '.artifacts[] | select(.name=="java-artifact") | .id')
+
+          curl -L \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/$REPO/actions/artifacts/$ARTIFACT_ID/zip \
+            -o artifact/artifact.zip
+
+          unzip artifact/artifact.zip -d artifact
+
+      # 2️⃣ Upload artifact to JFrog
       - name: Upload to JFrog Artifactory
         run: |
           curl -u ${{ secrets.JFROG_USER }}:${{ secrets.JFROG_API_KEY }} \
           -T artifact/*.jar \
           "${{ secrets.JFROG_URL }}/artifactory/libs-release-local/my-java-app/myapp.jar"
-
-      # Step 3: Copy artifact to EC2 / VM
-      - name: Copy artifact to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "artifact/*.jar"
-          target: "/opt/app/"
-
-      # Step 4: Deploy to Tomcat
-      - name: Deploy to Tomcat
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            sudo systemctl stop tomcat
-            sudo cp /opt/app/*.jar /opt/tomcat/webapps/
-            sudo systemctl start tomcat
