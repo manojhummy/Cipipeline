@@ -3,7 +3,7 @@ name: Simple Java CD Pipeline
 
 on:
   workflow_run:
-    workflows: [ "Java CI Pipeline" ]
+    workflows: [ "Java CI Pipeline" ]     # or "ci.yml" if the UI shows that
     types: [ completed ]
 
 jobs:
@@ -11,13 +11,30 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
+    permissions:
+      actions: read
+      contents: read
+
     steps:
+      - name: Debug – list artifacts in CI run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "Listing artifacts for CI run $RUN_ID"
+          curl -s \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/artifacts" | jq .
+
       - name: Download artifact from CI run
         uses: actions/download-artifact@v4
         with:
           name: java-artifact
-          run-id: ${{ github.event.workflow_run.id }}   # 👈 fetch from CI run
+          run-id: ${{ github.event.workflow_run.id }}
           path: artifact
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: List files
         run: ls -la artifact
@@ -26,4 +43,4 @@ jobs:
         run: |
           curl -H "Authorization: Bearer ${{ secrets.JFROG_ACCESS_TOKEN }}" \
                -T artifact/*.jar \
-               "${{ secrets.JFROG_URL }}/artifactory/libs-release-local/"
+              
