@@ -16,7 +16,7 @@ jobs:
       contents: read
 
     steps:
-      # 1️⃣ Get artifact from CI workflow using GitHub API
+      # 1️⃣ Download artifact from CI workflow
       - name: Download artifact from CI workflow
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -24,6 +24,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           mkdir artifact
+
           ARTIFACT_ID=$(curl -s \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
@@ -38,10 +39,12 @@ jobs:
 
           unzip artifact/artifact.zip -d artifact
 
-      # 2️⃣ Upload artifact to JFrog
+          echo "Downloaded files:"
+          ls -l artifact
+
+      # 2️⃣ Upload artifact to JFrog (FIXED PATH)
       - name: Upload artifact to JFrog using Access Token
         run: |
           curl -H "Authorization: Bearer ${{ secrets.JFROG_ACCESS_TOKEN }}" \
-          -T target/*.jar \
+          -T artifact/*.jar \
           "${{ secrets.JFROG_URL }}/artifactory/libs-release-local/"
-
