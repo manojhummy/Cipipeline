@@ -1,9 +1,10 @@
+
 name: Simple Java CD Pipeline
 
 on:
   workflow_run:
-    workflows: ["Java CI Pipeline"]
-    types: [completed]
+    workflows: [ "Java CI Pipeline" ]
+    types: [ completed ]
 
 jobs:
   cd:
@@ -11,16 +12,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Download artifact built in CI
-      - name: Download artifact
+      - name: Download artifact from CI run
         uses: actions/download-artifact@v4
         with:
           name: java-artifact
+          run-id: ${{ github.event.workflow_run.id }}   # 👈 fetch from CI run
           path: artifact
 
-      # Step 2: Upload artifact to JFrog
-      - name: Upload to JFrog
+      - name: List files
+        run: ls -la artifact
+
+      - name: Upload to JFrog (Identity/Access Token)
         run: |
           curl -H "Authorization: Bearer ${{ secrets.JFROG_ACCESS_TOKEN }}" \
-          -T artifact/*.jar \
-          "${{ secrets.JFROG_URL }}/artifactory/libs-release-local/"
+               -T artifact/*.jar \
+               "${{ secrets.JFROG_URL }}/artifactory/libs-release-local/"
