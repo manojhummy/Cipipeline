@@ -39,8 +39,9 @@ jobs:
           unzip artifact/artifact.zip -d artifact
 
       # 2️⃣ Upload artifact to JFrog
-      - name: Upload to JFrog Artifactory
+      - name: Upload artifact to JFrog using Access Token
         run: |
-          curl -u ${{ secrets.JFROG_USER }}:${{ secrets.JFROG_API_KEY }} \
-          -T artifact/*.jar \
-          "${{ secrets.JFROG_URL }}/artifactory/libs-release-local/my-java-app/myapp.jar"
+          curl -H "Authorization: Bearer ${{ secrets.JFROG_ACCESS_TOKEN }}" \
+          -T target/*.jar \
+          "${{ secrets.JFROG_URL }}/artifactory/libs-release-local/"
+
