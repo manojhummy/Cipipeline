@@ -135,3 +135,24 @@ jobs:
                        -T "$JAR_PATH" \
             "$TARGET_URL"
 
+deployment role is assumed by the Github actions, automation role is  assumed by the SSM docuemtns
+
+1)First created the Github runner role in monitoring deploy account
+
+2)Create the runner as well
+
+Yet to do
+
+3)Create workflows - (validate CF, deploy CF)
+
+4)Create automation role in monitoring-dev
+
+5)Create deployment role in monitoring-dev
+GitHub Actions → Build Java app → Build Docker image → Push to ECR → Deploy to ECS (Fargate)
+"I have implemented CI using GitHub Actions, but I am familiar with Jenkins, GitLab CI, and CircleCI, and the concepts are similar—checkout → build → test → code quality → artifact."
+Code Type	Build Tool	What CI does
+Java	Maven / Gradle	mvn package/test, generate JAR/WAR
+Python	pip/venv/pytest	install dependencies, test, lint
+Node.js	npm/yarn	npm install, build UI, run tests
+Go	go build/test	build static binary
+.NET	dotnet CLI	restore, build, test
